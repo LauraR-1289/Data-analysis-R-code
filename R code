@@ -1,0 +1,104 @@
+## import dataset 
+install.packages(c("MALDIquant", "MALDIquantForeign"))
+library("MALDIquant")
+library("MALDIquantForeign")
+supportedFileFormats()
+
+
+
+s<-importBrukerFlex("C:/Users/Asus PC/Desktop/LCMS/Lab 1/group1/group1/Digest/Lowlaser")
+
+s
+
+
+plot(s[[1]])
+plot(s[[2]])
+plot(s[[3]])
+plot(s[[4]])
+plot(s[[5]])
+plot(s[[6]])
+plot(s[[7]])
+
+
+#Variance Stabilization
+s <- transformIntensity(s,method="sqrt")
+#Smoothing
+s <- smoothIntensity(s, method="MovingAverage",
+                      halfWindowSize=10)
+plot(s[[1]])
+plot(s[[2]])
+plot(s[[3]])
+plot(s[[4]])
+plot(s[[5]])
+plot(s[[6]])
+plot(s[[7]])
+
+
+#Baseline correction
+BC <- estimateBaseline(s[[3]], method="TopHat")
+plot(s[[3]])
+lines(BC, col="red", lwd=2)
+
+plot(s[[1]])
+plot(s[[2]])
+plot(s[[3]])
+plot(s[[4]])
+plot(s[[5]])
+plot(s[[6]])
+plot(s[[7]])
+
+#... and now we remove the baseline
+s <- removeBaseline(s, method="TopHat")
+
+plot(s[[1]])
+plot(s[[2]])
+plot(s[[3]])
+plot(s[[4]])
+plot(s[[5]])
+plot(s[[6]])
+plot(s[[7]])
+
+
+#Intensity Calibration/normalization
+s <- calibrateIntensity(s, method="TIC")
+
+#Alignment
+s <- alignSpectra(s,halfWindowSize=20,SNR=2, 
+                  tolerance=0.002, 
+                  warpingMethod="lowess")
+
+s <- averageMassSpectra(s, labels=s, method="mean")
+
+#Peak Detection
+noise <- estimateNoise(s[[3]], method="MAD")
+plot(s[[3]], xlim=c(500, 3000), ylim=c(0, 0.02), 
+     main="Digest spectra after calibration", ylab="Intensity")
+lines(noise, col="red")
+lines(noise[,1], noise[, 2]*2, col="blue")
+
+peaks<-detectPeaks(s,method="MAD", halfWindowSize=20,SNR=2)
+plot(s[[3]],xlim=c(500,3000),ylim=c(0,0.01))
+points(peaks[[3]],col="red",pch=4)
+
+  
+#Peak Binning
+peaks<-binPeaks(peaks,tolerance=0.008)
+
+#Peak filtering
+peaks<-filterPeaks(peaks,minFrequency=0.25)
+
+featureMatrix <- intensityMatrix(peaks,s)
+head(featureMatrix)
+write.csv(peaks, "C:/Users/Asus PC/Desktop/LCMS/Lab 1/group1/group1/Digest/Lowlaser")
+
+#Just to see the Intact
+
+I<-importBrukerFlex("C:/Users/Asus PC/Desktop/LCMS/Lab 1/group1/group1/Intact")
+I
+plot(I[[1]])
+plot(I[[2]], 
+     main="Intact mass spectra after calibration", ylab="Intensity")
+plot(I[[3]])
+plot(I[[4]])
+
+
